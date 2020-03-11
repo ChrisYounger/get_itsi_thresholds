@@ -2,19 +2,19 @@
 
 # Get ITSI Thresholds - custom command
 
-A custom command that will retrieve the values of the time-based ITSI thresholds that are set for a KPI. Works with static ITSI thresholds or Adaptive thresholds.
+A custom command that will retrieve the values of the time-based ITSI thresholds that are set for a KPI. Works with static ITSI thresholds or adaptive thresholds.
 
 `| getitsithresholds service=<serviceid-string> kpi=<kpi-string> mode=(normal|raw|columns)`
 
-This can be used as a generating command or a steaming command. If used as a streaming command, it must have a `_time` column. It will use this `_time` column to match the thresholds with the correct data rows. Data can be supplied in any granularity however if the time block extends through multiple time policies, then only the first time policy will be output. For this reason, its best to use data with hourly granularity or smaller. 
+This can be used as a generating command or a steaming command. If used as a streaming command, it must have a `_time` field/column. It will use this `_time` column to match the thresholds with the correct data rows. Data can be supplied in any granularity however if the time block extends through multiple time policies, then only the first time policy will be output. For this reason, its best to use data with hourly granularity or smaller. 
 
 
 Simple example to retrieve thresholds (generating command):
 
-    | getitsithresholds service=c2d8f443-fd65-4872-b3b8-1ac7757b57f6 kpi=a672f70631ce28a0be31e1f2`
+    | getitsithresholds service=c2d8f443-fd65-4872-b3b8-1ac7757b57f6 kpi=a672f70631ce28a0be31e1f2
 
 
-Example merging with data (streaming command):
+Example enriching data by adding thresholds (streaming command):
 
     index="itsi_summary" itsi_service_id=c2d8f443-fd65-4872-b3b8-1ac7757b57f6 kpiid=a672f70631ce28a0be31e1f2 
     | timechart span=1h avg(alert_value) as alert_value
