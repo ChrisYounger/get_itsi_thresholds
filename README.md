@@ -14,7 +14,7 @@ Simple example to retrieve thresholds (generating command):
     | getitsithresholds service=c2d8f443-fd65-4872-b3b8-1ac7757b57f6 kpi=a672f70631ce28a0be31e1f2
 
 
-Example enriching data by adding thresholds (streaming command):
+Example showing how to enrich data by adding thresholds (streaming command):
 
     index="itsi_summary" itsi_service_id=c2d8f443-fd65-4872-b3b8-1ac7757b57f6 kpiid=a672f70631ce28a0be31e1f2 
     | timechart span=1h avg(alert_value) as alert_value
