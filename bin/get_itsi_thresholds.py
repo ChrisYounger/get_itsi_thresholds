@@ -14,7 +14,12 @@ class GetItsiThresholds(SearchCommand):
         SearchCommand.__init__(self, run_in_preview=False, logger_name='get_itsi_thresholds_command')
 
     def handle_results(self, results, session_key, in_preview):
-        self.logger.info("Querying thresholds for service=\"" + self.service + "\" kpi=\"" + self.kpi + "\" in mode=\"" + self.mode + "\" rows_in=" + str(len(results)) + "")
+        self.logger.info("Querying thresholds for service=\"" + str(self.service) + "\" kpi=\"" + str(self.kpi) + "\" in mode=\"" + self.mode + "\" rows_in=" + str(len(results)) + "")
+
+        if self.service is None:
+            raise Exception("Missing \"service=\" argument ")
+        if self.kpi is None:
+            raise Exception("Missing \"kpi=\" argument ")
         #self.logger.info("in_preview=" + str(in_preview))
         #self.logger.info("results=" + str(results))
         houroffsets = []
