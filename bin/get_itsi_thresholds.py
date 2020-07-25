@@ -80,7 +80,7 @@ class GetItsiThresholds(SearchCommand):
                 if service['enabled'] != 1:
                     continue
                 for kpi in service["kpis"]:
-                    self.logger.error("Found kpi: " + kpi["_key"])
+                    #self.logger.error("Found kpi: " + kpi["_key"])
                     if not self.kpi is None and kpi["_key"] != self.kpi:
                         continue
                     # skip health score KPIs
@@ -215,7 +215,7 @@ class GetItsiThresholds(SearchCommand):
                         data_hr_offset += 1
                     else:
                         # figure out the hour offset for this data row
-                        data_hr_offset = ((int(row["_time"]) // 3600) + 96) % 168
+                        data_hr_offset = ((int(row["_time"]) // 3600) - 120) % 168
                     # dump the raw json
                     if self.mode == "raw":
                         row['thresholds'] = KPIs[self.kpi]['rawdata'][data_hr_offset]
