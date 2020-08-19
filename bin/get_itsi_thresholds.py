@@ -5,11 +5,12 @@ from collections import OrderedDict
 
 class GetItsiThresholds(SearchCommand):
 
-    def __init__(self, service=None, services=None, kpi=None, mode=""):
+    def __init__(self, service=None, services=None, kpi=None, mode="", round="t"):
         self.service = service
         self.services = services
         self.kpi = kpi
         self.mode = mode.lower()
+        self.round = round.lower()[:1]
         # Initialize the class
         SearchCommand.__init__(self, run_in_preview=False, logger_name='get_itsi_thresholds_command')
 
@@ -30,7 +31,17 @@ class GetItsiThresholds(SearchCommand):
                 message = "An exception of type {0} occurred. Arguments:\n{1!r}".format(type(ex).__name__, ex.args)
                 self.logger.warn("Error retreiving thresholds. [" + message + "]")
                 raise Exception("Error retreiving thresholds. [" + message + "]")
-                        
+
+        def roundval(val):
+            if self.round == "t":
+                if val < 1 and val > -1:
+                    return round(val,3)
+                if val < 10 and val > -10:
+                    return round(val,1)
+                return round(val)
+            return val
+
+
         self.logger.info("Querying thresholds for service=\"" + str(self.service) + "\" kpi=\"" + str(self.kpi) + "\" in mode=\"" + self.mode + "\" rows_in=" + str(len(results)) + "")
 
         try:
@@ -101,12 +112,12 @@ class GetItsiThresholds(SearchCommand):
                         dpolicy = "default_policy"
                         dseverity.append(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["baseSeverityLabel"])
                         dcolor.append(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["baseSeverityColor"])
-                        dmin = kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["renderBoundaryMin"]
-                        dmax = kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["renderBoundaryMax"]
+                        dmin = roundval(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["renderBoundaryMin"])
+                        dmax = roundval(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["renderBoundaryMax"])
                         if self.mode == "raw":
                             draw = json.dumps(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"], indent=4, sort_keys=True)
                         for threshold in kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["thresholdLevels"]:
-                            dthreshold.append(str(threshold["thresholdValue"]))
+                            dthreshold.append(str(roundval(threshold["thresholdValue"])))
                             dseverity.append(threshold["severityLabel"])
                             dcolor.append(threshold["severityColor"])
 
@@ -143,7 +154,7 @@ class GetItsiThresholds(SearchCommand):
                         statusStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"]]
                         colorStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityColor"]]
                         for threshold in kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["thresholdLevels"]:
-                            thresStr.append(str(threshold["thresholdValue"]))
+                            thresStr.append(str(roundval(threshold["thresholdValue"])))
                             statusStr.append(threshold["severityLabel"])
                             colorStr.append(threshold["severityColor"])
 
@@ -163,39 +174,48 @@ class GetItsiThresholds(SearchCommand):
                                     KPIs[kpi["_key"]]['thresholds'][hr_offset] = thresStr
                                     KPIs[kpi["_key"]]['severities'][hr_offset] = statusStr
                                     KPIs[kpi["_key"]]['colors'][hr_offset] = colorStr
-                                    KPIs[kpi["_key"]]['boundarymin'][hr_offset] = kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMin"]
-                                    KPIs[kpi["_key"]]['boundarymax'][hr_offset] = kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMax"]
+                                    KPIs[kpi["_key"]]['boundarymin'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMin"])
+                                    KPIs[kpi["_key"]]['boundarymax'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMax"])
                                     KPIs[kpi["_key"]]['policytitle'][hr_offset] = kpi["time_variate_thresholds_specification"]["policies"][policy]["title"]
                                     KPIs[kpi["_key"]]['rawdata'][hr_offset] = rraw
                                     if rem_duration < 1:
                                         rem_duration = int(int(timeblock[1]) / 60)
 
             if self.mode[0:3] == "now":
-                data_hr_offset = ((int(time.time()) // 3600) - 120) % 168 # this was previously 96
+                data_hr_offset_now = ((int(time.time()) // 3600) - 120) % 168 # this was previously 96
+                extra_hours = 0
+                mode_parts = self.mode.split("+")
+                if len(mode_parts) == 2:
+                    extra_hours = int(mode_parts[1])
+                data_hr_offsets = [data_hr_offset_now]
+                for ho in range(0,extra_hours):
+                    data_hr_offsets.append((data_hr_offset_now + 1 + ho) % 168)
                 for kpi in KPIs:
-                    row = OrderedDict()
-                    results.append(row)
-                    row['service_id'] = KPIs[kpi]['service_id']
-                    row['kpi_id'] = kpi
-                    if self.mode == "nowextended":
-                        row['hour'] = KPIs[kpi]['houroffsets'][data_hr_offset]
-                        row['policy'] = KPIs[kpi]['policytitle'][data_hr_offset]
-                        row['min'] = KPIs[kpi]['boundarymin'][data_hr_offset]
-                        row['max'] = KPIs[kpi]['boundarymax'][data_hr_offset]
-                    thstring = ""
-                    thlength = len(KPIs[kpi]['thresholds'][data_hr_offset])
-                    for idx, val in enumerate(KPIs[kpi]['severities'][data_hr_offset]):
-                        if self.mode == "nowextended":
-                            row['severity' + str(idx)] = val
-                        thstring += val
-                        if idx < thlength:
-                            thstring += "," + KPIs[kpi]['thresholds'][data_hr_offset][idx] + ","
-                    if self.mode == "nowextended":
-                        for idx, val in enumerate(KPIs[kpi]['colors'][data_hr_offset]):
-                            row['color' + str(idx)] = val
-                        for idx, val in enumerate(KPIs[kpi]['thresholds'][data_hr_offset], 1):
-                            row['threshold' + str(idx)] = val
-                    row['thresholds'] = thstring;
+                    for data_hr_offset in data_hr_offsets:
+                        row = OrderedDict()
+                        results.append(row)
+                        row['service_id'] = KPIs[kpi]['service_id']
+                        row['kpi_id'] = kpi
+                        if self.mode[0:11] == "nowextended" or len(data_hr_offsets) > 1:
+                            row['hour'] = KPIs[kpi]['houroffsets'][data_hr_offset]
+                        if self.mode[0:11] == "nowextended":
+                            row['policy'] = KPIs[kpi]['policytitle'][data_hr_offset]
+                            row['min'] = KPIs[kpi]['boundarymin'][data_hr_offset]
+                            row['max'] = KPIs[kpi]['boundarymax'][data_hr_offset]
+                        thstring = ""
+                        thlength = len(KPIs[kpi]['thresholds'][data_hr_offset])
+                        for idx, val in enumerate(KPIs[kpi]['severities'][data_hr_offset]):
+                            if self.mode[0:11] == "nowextended":
+                                row['severity' + str(idx)] = val
+                            thstring += val
+                            if idx < thlength:
+                                thstring += "," + KPIs[kpi]['thresholds'][data_hr_offset][idx] + ","
+                        if self.mode[0:11] == "nowextended":
+                            for idx, val in enumerate(KPIs[kpi]['colors'][data_hr_offset]):
+                                row['color' + str(idx)] = val
+                            for idx, val in enumerate(KPIs[kpi]['thresholds'][data_hr_offset], 1):
+                                row['threshold' + str(idx)] = val
+                        row['thresholds'] = thstring;
 
             else:
                 # if we didnt find 168 time blocks then we could not find the KPi
