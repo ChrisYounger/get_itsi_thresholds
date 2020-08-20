@@ -35,11 +35,17 @@ class GetItsiThresholds(SearchCommand):
         def roundval(val):
             if self.round == "t":
                 if val < 1 and val > -1:
-                    return round(val,3)
-                if val < 10 and val > -10:
-                    return round(val,1)
-                return round(val)
-            return val
+                    r = str(round(val,3))
+                elif val < 10 and val > -10:
+                    r = str(round(val,2))
+                elif val < 100 and val > -100:
+                    r = str(round(val,1))
+                else:
+                    r = str(round(val,0))
+                if "." in r:
+                    r = r.rstrip('0').rstrip('.')
+                return r
+            return str(val)
 
 
         self.logger.info("Querying thresholds for service=\"" + str(self.service) + "\" kpi=\"" + str(self.kpi) + "\" in mode=\"" + self.mode + "\" rows_in=" + str(len(results)) + "")
@@ -117,7 +123,7 @@ class GetItsiThresholds(SearchCommand):
                         if self.mode == "raw":
                             draw = json.dumps(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"], indent=4, sort_keys=True)
                         for threshold in kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["thresholdLevels"]:
-                            dthreshold.append(str(roundval(threshold["thresholdValue"])))
+                            dthreshold.append(roundval(threshold["thresholdValue"]))
                             dseverity.append(threshold["severityLabel"])
                             dcolor.append(threshold["severityColor"])
 
@@ -154,7 +160,7 @@ class GetItsiThresholds(SearchCommand):
                         statusStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"]]
                         colorStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityColor"]]
                         for threshold in kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["thresholdLevels"]:
-                            thresStr.append(str(roundval(threshold["thresholdValue"])))
+                            thresStr.append(roundval(threshold["thresholdValue"]))
                             statusStr.append(threshold["severityLabel"])
                             colorStr.append(threshold["severityColor"])
 
