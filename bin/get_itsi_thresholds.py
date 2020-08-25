@@ -5,10 +5,11 @@ from collections import OrderedDict
 
 class GetItsiThresholds(SearchCommand):
 
-    def __init__(self, service=None, services=None, kpi=None, mode="", round="t"):
+    def __init__(self, service=None, services=None, kpi=None, mode="", round="t", errors=""):
         self.service = service
         self.services = services
         self.kpi = kpi
+        self.errors = errors
         self.mode = mode.lower()
         self.round = round.lower()[:1]
         # Initialize the class
@@ -114,7 +115,20 @@ class GetItsiThresholds(SearchCommand):
                     dseverity = []
                     dcolor = []
 
-                    if "default_policy" in kpi["time_variate_thresholds_specification"]["policies"]:
+                    if "time_variate_thresholds" in kpi and not kpi["time_variate_thresholds"]:
+                        dpolicy = ""
+                        dseverity.append(kpi["aggregate_thresholds"]["baseSeverityLabel"])
+                        dcolor.append(kpi["aggregate_thresholds"]["baseSeverityColor"])
+                        dmin = roundval(kpi["aggregate_thresholds"]["renderBoundaryMin"])
+                        dmax = roundval(kpi["aggregate_thresholds"]["renderBoundaryMax"])
+                        if self.mode == "raw":
+                            draw = json.dumps(kpi["aggregate_thresholds"], indent=4, sort_keys=True)
+                        for threshold in kpi["aggregate_thresholds"]["thresholdLevels"]:
+                            dthreshold.append(roundval(threshold["thresholdValue"]))
+                            dseverity.append(threshold["severityLabel"])
+                            dcolor.append(threshold["severityColor"])
+
+                    elif "default_policy" in kpi["time_variate_thresholds_specification"]["policies"]:
                         dpolicy = "default_policy"
                         dseverity.append(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["baseSeverityLabel"])
                         dcolor.append(kpi["time_variate_thresholds_specification"]["policies"]["default_policy"]["aggregate_thresholds"]["baseSeverityColor"])
@@ -279,8 +293,11 @@ class GetItsiThresholds(SearchCommand):
             # output the data
             self.output_results(results)
         except Exception as ex:
-            message = str(traceback.format_exc())
-            raise Exception("Bad: [" + message + "]")
+            if self.errors == "ignore":
+                self.output_results(results)
+            else:
+                message = str(traceback.format_exc())
+                raise Exception("Bad: [" + message + "]")
             
 
 if __name__ == '__main__':
