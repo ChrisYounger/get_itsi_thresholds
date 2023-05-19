@@ -165,41 +165,42 @@ class GetItsiThresholds(SearchCommand):
                         KPIs[kpi["_key"]]['boundarymax'].append(dmax)
                         KPIs[kpi["_key"]]['policytitle'].append("Default")
 
-                    for policy in kpi["time_variate_thresholds_specification"]["policies"]:
-                        #res.append("Policy:" + policy)
-                        #res.append("Policy Title:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["title"])
-                        #res.append("Policy Type:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["policy_type"])
-                        #res.append("Policy baseSeverityLabel:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"])
-                        thresStr = []
-                        statusStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"]]
-                        colorStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityColor"]]
-                        for threshold in kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["thresholdLevels"]:
-                            thresStr.append(roundval(threshold["thresholdValue"]))
-                            statusStr.append(threshold["severityLabel"])
-                            colorStr.append(threshold["severityColor"])
+                    if kpi["time_variate_thresholds"]:
+                        for policy in kpi["time_variate_thresholds_specification"]["policies"]:
+                            #res.append("Policy:" + policy)
+                            #res.append("Policy Title:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["title"])
+                            #res.append("Policy Type:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["policy_type"])
+                            #res.append("Policy baseSeverityLabel:" + kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"])
+                            thresStr = []
+                            statusStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityLabel"]]
+                            colorStr = [kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["baseSeverityColor"]]
+                            for threshold in kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["thresholdLevels"]:
+                                thresStr.append(roundval(threshold["thresholdValue"]))
+                                statusStr.append(threshold["severityLabel"])
+                                colorStr.append(threshold["severityColor"])
 
-                        for timeblock in kpi["time_variate_thresholds_specification"]["policies"][policy]["time_blocks"]:
-                            #res.append("Timeblock cron:" + str(timeblock[0]))
-                            #res.append("Timeblock duration:" + str(timeblock[1]))
-                            #res.append(json.dumps(kpi["time_variate_thresholds_specification"]["policies"][policy]["time_blocks"], indent=4, sort_keys=True))
-                            rraw =  ""
-                            if self.mode == "raw":
-                                rraw = json.dumps(kpi["time_variate_thresholds_specification"]["policies"][policy], indent=4, sort_keys=True)
-                            rem_duration = 0
-                            for hr_offset in range(0,168):
-                                if rem_duration > 0:
-                                    rem_duration -= 1
-                                if rem_duration > 0 or (pycron.is_now(timeblock[0], dt=(startofweek + timedelta(hours=hr_offset)))):
-                                    KPIs[kpi["_key"]]['policies'][hr_offset] = policy
-                                    KPIs[kpi["_key"]]['thresholds'][hr_offset] = thresStr
-                                    KPIs[kpi["_key"]]['severities'][hr_offset] = statusStr
-                                    KPIs[kpi["_key"]]['colors'][hr_offset] = colorStr
-                                    KPIs[kpi["_key"]]['boundarymin'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMin"])
-                                    KPIs[kpi["_key"]]['boundarymax'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMax"])
-                                    KPIs[kpi["_key"]]['policytitle'][hr_offset] = kpi["time_variate_thresholds_specification"]["policies"][policy]["title"]
-                                    KPIs[kpi["_key"]]['rawdata'][hr_offset] = rraw
-                                    if rem_duration < 1:
-                                        rem_duration = int(int(timeblock[1]) / 60)
+                            for timeblock in kpi["time_variate_thresholds_specification"]["policies"][policy]["time_blocks"]:
+                                #res.append("Timeblock cron:" + str(timeblock[0]))
+                                #res.append("Timeblock duration:" + str(timeblock[1]))
+                                #res.append(json.dumps(kpi["time_variate_thresholds_specification"]["policies"][policy]["time_blocks"], indent=4, sort_keys=True))
+                                rraw =  ""
+                                if self.mode == "raw":
+                                    rraw = json.dumps(kpi["time_variate_thresholds_specification"]["policies"][policy], indent=4, sort_keys=True)
+                                rem_duration = 0
+                                for hr_offset in range(0,168):
+                                    if rem_duration > 0:
+                                        rem_duration -= 1
+                                    if rem_duration > 0 or (pycron.is_now(timeblock[0], dt=(startofweek + timedelta(hours=hr_offset)))):
+                                        KPIs[kpi["_key"]]['policies'][hr_offset] = policy
+                                        KPIs[kpi["_key"]]['thresholds'][hr_offset] = thresStr
+                                        KPIs[kpi["_key"]]['severities'][hr_offset] = statusStr
+                                        KPIs[kpi["_key"]]['colors'][hr_offset] = colorStr
+                                        KPIs[kpi["_key"]]['boundarymin'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMin"])
+                                        KPIs[kpi["_key"]]['boundarymax'][hr_offset] = roundval(kpi["time_variate_thresholds_specification"]["policies"][policy]["aggregate_thresholds"]["renderBoundaryMax"])
+                                        KPIs[kpi["_key"]]['policytitle'][hr_offset] = kpi["time_variate_thresholds_specification"]["policies"][policy]["title"]
+                                        KPIs[kpi["_key"]]['rawdata'][hr_offset] = rraw
+                                        if rem_duration < 1:
+                                            rem_duration = int(int(timeblock[1]) / 60)
 
             if self.mode[0:3] == "now":
                 data_hr_offset_now = ((int(time.time()) // 3600) - 120) % 168 # this was previously 96
